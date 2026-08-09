@@ -2,8 +2,11 @@
 
 A two-week to-do board that lives on your desktop — the days of the week across,
 one week per block, editable directly from the desktop.
-## Build
+![TodoWall on the desktop](docs/screenshot.png)
 
+![TodoWall in use](docs/demo.gif)
+
+## Build
 Needs the **.NET 10 SDK** — the project targets `net10.0-windows`, and the build
 script checks for it before doing anything.
 
@@ -53,12 +56,9 @@ kept forever.
 ## Memory
 
 Measured on a 1920×1200 single-monitor machine, idle on the desktop:
-
-| | before | after |
-|---|---:|---:|
-| Working set | 273 MB | **~12–16 MB** |
-| Private (committed) | 176 MB | **~55 MB** |
-| Threads | 34 | **18** |
+| Working set | **~12–16 MB** |
+| Private (committed) | **~55 MB** |
+| Threads | **18** |
 
 If the bar isn't visible, the tray menu's **Bring to front (troubleshoot)** pulls
 it to the top of the z-order. If it appears, the window renders fine and only its
