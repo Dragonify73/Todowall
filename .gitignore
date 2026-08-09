@@ -1,0 +1,18 @@
+# Build output
+bin/
+obj/
+dist/
+release/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.user
+*.suo
+
+# Local logs and scratch
+*.log
+
+# Raw capture — too large for git. Compressed copies live in docs/
+export-*.gif
+*.mp4

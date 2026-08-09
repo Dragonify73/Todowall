@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+
+    <AssemblyName>TodoWall</AssemblyName>
+    <RootNamespace>TodoWall</RootNamespace>
+    <StartupObject>TodoWall.Program</StartupObject>
+
+    <!-- We build the UI in code, so there is no App.xaml entry point. -->
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <Platforms>AnyCPU</Platforms>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <DebugType>embedded</DebugType>
+
+    <!-- WFO0003: the WinForms analyser wants DPI configured via its own API, but this is a
+         WPF app that happens to reference WinForms for the tray icon. WPF needs the
+         awareness declared in app.manifest, so the manifest stays. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+
+    <!-- This is an idle desktop widget, not a throughput workload. Workstation,
+         non-concurrent GC keeps the heap small and drops the background GC thread;
+         RetainVM off returns freed segments to the OS instead of hoarding them. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
+    <TieredCompilationQuickJitForLoops>true</TieredCompilationQuickJitForLoops>
+
+    <!-- No ICU: saves the globalization tables. Day names in the UI are already
+         hardcoded English, so dates just format consistently with them. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+
+    <!-- Invariant mode alone rejects every CultureInfo that is not the invariant one,
+         including construction by LCID - and WPF's text editor asks for the keyboard
+         layout's culture (InputLanguageSource.CurrentInputLanguage, an LCID lookup) on
+         every single character typed. That threw, the dispatcher handler swallowed it,
+         and no TextBox in the app would accept text. Relaxing this makes the lookup
+         return an invariant-behaving culture instead of throwing; ICU still never
+         loads, so the memory win is unaffected. -->
+    <PredefinedCulturesOnly>false</PredefinedCulturesOnly>
+    <EventSourceSupport>false</EventSourceSupport>
+    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
+
+    <Version>1.0.1</Version>
+    <Product>TodoWall</Product>
+    <Company>TodoWall</Company>
+    <Description>A weekly to-do list that lives on your desktop wallpaper.</Description>
+
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon Condition="Exists('app.ico')">app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+</Project>
