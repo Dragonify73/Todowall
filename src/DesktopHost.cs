@@ -36,12 +36,12 @@ namespace TodoWall
         const uint WM_SPAWN_WORKER = 0x052C;
         const uint GA_PARENT = 1;
 
-        public static HostMode ParseMode(string s)
-        {
-            if (string.Equals(s, "DesktopChild", StringComparison.OrdinalIgnoreCase)) return HostMode.DesktopChild;
-            if (string.Equals(s, "BehindIcons", StringComparison.OrdinalIgnoreCase)) return HostMode.BehindIcons;
-            return HostMode.Floating;
-        }
+        /// <summary>Where the widgets live. Fixed, and deliberately not a setting: floating
+        /// is the only placement that is both clickable and independent of Explorer's
+        /// internals, so it is the one every window asks for. The reparented modes stay
+        /// described above because the attach path still falls back through them, and
+        /// because they are what the desktop-hosting notes in the log refer to.</summary>
+        public const HostMode Mode = HostMode.Floating;
 
         // ------------------------------------------------------------ floating mode
 

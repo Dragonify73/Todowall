@@ -29,7 +29,7 @@ namespace TodoWall
     internal static class MenuChrome
     {
         // Gutter left inside the popup for the shadow to spill into. The popup window is
-        // sized to the card PLUS this, so it is also what Frost() has to subtract back off
+        // sized to the card PLUS this, so it is also what FrostCard() has to subtract off
         // to find where the card actually sits on screen - hence one definition, injected
         // into the templates rather than written twice.
         const int GutterL = 8, GutterT = 6, GutterR = 8, GutterB = 12;
@@ -94,19 +94,28 @@ namespace TodoWall
             PlayOpen(chrome);
             // Nothing is placed or measured yet at Opened; the blur needs both.
             chrome.Dispatcher.BeginInvoke(DispatcherPriority.Loaded,
-                new Action(delegate { Frost(chrome, tint); }));
+                new Action(delegate
+                {
+                    FrostCard(chrome, tint, new Thickness(GutterL, GutterT, GutterR, GutterB));
+                }));
         }
 
         /// <summary>Cut the slice of blurred wallpaper sitting behind this card and paint
-        /// the menu with it. Falls back to the flat panel colour the template already
-        /// carries, so a failure here is invisible rather than fatal.</summary>
-        static void Frost(Border chrome, Border tint)
+        /// it with it. Falls back to the flat panel colour the template already carries, so
+        /// a failure here is invisible rather than fatal.
+        ///
+        /// Shared rather than menu-private: the Settings panel is made of the same card
+        /// material, and a second copy of this would be a second thing to keep in step with
+        /// the palette. <paramref name="gutter"/> is the margin the card sits inside its own
+        /// window by - the room left for its shadow - which is what has to come back off the
+        /// window rect to find where the card actually lands on screen.</summary>
+        public static void FrostCard(Border chrome, Border tint, Thickness gutter)
         {
             if (chrome == null || !chrome.IsVisible) return;
 
             Palette p = Core.Skin;
             Color panel = ColorOf(p.Panel);
-            ImageBrush glass = Core.Config.Blur ? Cut(chrome, panel) : null;
+            ImageBrush glass = Core.Config.Blur ? Cut(chrome, panel, gutter) : null;
 
             if (glass == null)
             {
@@ -125,15 +134,15 @@ namespace TodoWall
         /// because a near-transparent bar with a slab of a menu on it looks like two
         /// different programs. Unblurred needs the most help: there is nothing behind the
         /// tint but raw wallpaper.</summary>
-        static double GlassAlpha { get { return Clamp(Core.Config.Opacity, 0.70, 0.92); } }
-        static double FlatAlpha { get { return Clamp(Core.Config.Opacity + 0.30, 0.80, 0.97); } }
+        public static double GlassAlpha { get { return Clamp(Core.Config.Opacity, 0.70, 0.92); } }
+        public static double FlatAlpha { get { return Clamp(Core.Config.Opacity + 0.30, 0.80, 0.97); } }
 
         static double Clamp(double v, double lo, double hi)
         {
             return v < lo ? lo : (v > hi ? hi : v);
         }
 
-        static ImageBrush Cut(Border chrome, Color panel)
+        static ImageBrush Cut(Border chrome, Color panel, Thickness gutter)
         {
             try
             {
@@ -148,10 +157,10 @@ namespace TodoWall
                 Native.RECT r;
                 if (!Native.GetWindowRect(src.Handle, out r)) return null;
 
-                int x = r.Left + (int)Math.Round(GutterL * sx);
-                int y = r.Top + (int)Math.Round(GutterT * sy);
-                int w = (r.Right - r.Left) - (int)Math.Round((GutterL + GutterR) * sx);
-                int h = (r.Bottom - r.Top) - (int)Math.Round((GutterT + GutterB) * sy);
+                int x = r.Left + (int)Math.Round(gutter.Left * sx);
+                int y = r.Top + (int)Math.Round(gutter.Top * sy);
+                int w = (r.Right - r.Left) - (int)Math.Round((gutter.Left + gutter.Right) * sx);
+                int h = (r.Bottom - r.Top) - (int)Math.Round((gutter.Top + gutter.Bottom) * sy);
                 if (w < 4 || h < 4) return null;
 
                 System.Drawing.Rectangle screen =
@@ -426,5 +435,9 @@ namespace TodoWall
         public const string GlyphClear = "\uE894";      // clear
         public const string GlyphAttach = "\uE72C";     // refresh
         public const string GlyphExit = "\uE7E8";       // power
+        public const string GlyphColor = "\uE790";      // palette
+        public const string GlyphClock = "\uE917";      // clock face
+        public const string GlyphPerson = "\uE77B";     // contact
+        public const string GlyphClose = "\uE8BB";      // window close
     }
 }

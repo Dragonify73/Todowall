@@ -39,6 +39,9 @@ namespace TodoWall
         StackPanel _content;
         Border _head;                 // time + date + handle: the click/hover target
         TextBlock _time;
+        System.Windows.Documents.Run _lead;      // invisible counterweight to _meridiem
+        System.Windows.Documents.Run _timeRun;   // the digits
+        System.Windows.Documents.Run _meridiem;  // AM/PM, empty in 24-hour mode
         TextBlock _date;
         Border _handle;               // the dash that becomes an arrow
         RotateTransform _armL, _armR;
@@ -180,6 +183,28 @@ namespace TodoWall
             // Proportional digits make the notch twitch as the minutes roll over; tabular
             // ones keep every time exactly as wide as every other.
             System.Windows.Documents.Typography.SetNumeralAlignment(_time, FontNumeralAlignment.Tabular);
+
+            // Runs rather than one string: the meridiem has to be set smaller than the
+            // digits it follows, or "PM" at clock size turns the notch into a sign. Setting
+            // TextBlock.Text would throw the inlines away, so nothing ever does.
+            //
+            // _lead is the same text again, invisible, in front. Centring "8:16 PM" as one
+            // line puts the middle of the whole string on the centre line, which leaves the
+            // digits - the thing the eye actually reads as the clock - sitting half the
+            // width of "PM" to the left of it, and the notch looks wrong even though the
+            // arithmetic is right. An identical run on the other side balances it exactly,
+            // whatever the font does with those two glyphs, and needs no measuring.
+            _lead = new System.Windows.Documents.Run();
+            _lead.FontSize = ClockSize * 0.42;
+            _lead.FontWeight = FontWeights.SemiBold;
+            _lead.Foreground = Brushes.Transparent;
+            _timeRun = new System.Windows.Documents.Run();
+            _meridiem = new System.Windows.Documents.Run();
+            _meridiem.FontSize = ClockSize * 0.42;
+            _meridiem.FontWeight = FontWeights.SemiBold;
+            _time.Inlines.Add(_lead);
+            _time.Inlines.Add(_timeRun);
+            _time.Inlines.Add(_meridiem);
 
             _date = new TextBlock();
             _date.FontSize = FS * 0.7;
@@ -425,10 +450,17 @@ namespace TodoWall
         {
             DateTime now = DateTime.Now;
 
-            // 24-hour, so the width never depends on the hour and there is no AM/PM to
-            // clutter a face this large.
-            string time = now.ToString("HH:mm", CultureInfo.InvariantCulture);
-            if (force || _time.Text != time) _time.Text = time;
+            // 24-hour is the default because its width never depends on the hour and it
+            // needs no suffix; 12-hour is offered because plenty of people read a clock
+            // that way, and MeasureExtents reserves the room its wider hours need.
+            bool h24 = Core.Config.Clock24Hour;
+            string time = now.ToString(h24 ? "HH:mm" : "h:mm", CultureInfo.InvariantCulture);
+            string suffix = h24 ? "" : " " + now.ToString("tt", CultureInfo.InvariantCulture).ToUpperInvariant();
+            if (force || _timeRun.Text != time) _timeRun.Text = time;
+            if (force || _meridiem.Text != suffix) _meridiem.Text = suffix;
+            // Mirrored, so the space falls on the outside of the glyphs on both sides.
+            string lead = h24 ? "" : suffix.Trim() + " ";
+            if (force || _lead.Text != lead) _lead.Text = lead;
 
             string date = now.ToString("ddd d MMM", CultureInfo.InvariantCulture).ToUpperInvariant();
             if (force || _date.Text != date) _date.Text = date;
@@ -847,11 +879,19 @@ namespace TodoWall
                 }));
         }
 
+        /// <summary>Drop the cached glass and cut it again from whatever the wallpaper is
+        /// now. Nothing else about the window changes - see <see cref="WallpaperWatch"/>.</summary>
+        public void RefreshBackdrop()
+        {
+            _backdropKey = "";
+            Relayout();
+        }
+
         public void Attach(bool relayout)
         {
             if (_hwnd == IntPtr.Zero) return;
 
-            _mode = DesktopHost.ParseMode(Core.Config.AttachMode);
+            _mode = DesktopHost.Mode;
             _childAttached = false;
             _parent = IntPtr.Zero;
 
@@ -898,6 +938,21 @@ namespace TodoWall
         /// </summary>
         void MeasureExtents()
         {
+            // Measure the widest face this clock can ever show, not the one it happens to
+            // be showing. In 12-hour mode the hour swings between one and two digits, so
+            // sizing to the current time would mean re-placing the window - visibly moving
+            // the notch on the screen - at 9:59 to make room for 10:00. Tabular numerals
+            // make every digit the same width, so a two-digit hour is the whole story.
+            string time = _timeRun.Text, suffix = _meridiem.Text, lead = _lead.Text;
+            if (!Core.Config.Clock24Hour)
+            {
+                // The meridiem is pinned too: nothing re-measures at noon, so if AM and PM
+                // are not the same width in this font the shape has to already fit both.
+                _timeRun.Text = "12:00";
+                _meridiem.Text = " PM";
+                _lead.Text = "PM ";
+            }
+
             _content.Margin = new Thickness(0, PadTop, 0, 0);
             InvalidateTree(_content);
             _content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -945,6 +1000,12 @@ namespace TodoWall
             // edge is pinned, so nothing on the face moves when it does.
             _windowW = _envW;
             _windowH = unfolds ? _envH : _shapeH0;
+
+            // Back to the real time. Every extent above is a stored number now, so the
+            // measure this dirties costs nothing but the next layout pass.
+            _timeRun.Text = time;
+            _meridiem.Text = suffix;
+            _lead.Text = lead;
         }
 
         /// <summary>Build a month purely to find out how tall the unfolded notch is, then

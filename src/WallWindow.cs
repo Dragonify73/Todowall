@@ -1108,11 +1108,19 @@ namespace TodoWall
             Log.Write(message);
         }
 
+        /// <summary>Drop the cached glass and cut it again from whatever the wallpaper is
+        /// now. Nothing else about the window changes - see <see cref="WallpaperWatch"/>.</summary>
+        public void RefreshBackdrop()
+        {
+            _backdropKey = "";
+            Relayout();
+        }
+
         public void Attach(bool relayout)
         {
             if (_hwnd == IntPtr.Zero) return;
 
-            _mode = DesktopHost.ParseMode(Core.Config.AttachMode);
+            _mode = DesktopHost.Mode;
             _childAttached = false;
             _parent = IntPtr.Zero;
 

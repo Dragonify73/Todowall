@@ -95,18 +95,21 @@ namespace TodoWall
             _tray = new Tray();
             Core.TrayIcon = _tray;
 
-            WallWindow wall = new WallWindow();
-            Core.Wall = wall;
-            wall.Show();
-            wall.Attach(true);
+            // Over everything, once, on the way in: "Welcome back" and a line for the day,
+            // gone on a click. Off in Settings.
+            //
+            // It goes up FIRST, and the board follows once its fade is over. Both are
+            // screen-sized layered windows painted in software on this one thread, and the
+            // board's own arrival - first layout, its glass, its rise-in - landing in the
+            // same frames as the welcome fade is what made the fade stutter. Nobody sees
+            // the board arrive late: the welcome screen is covering it.
+            bool welcome = WelcomeWindow.ShowAtStartup();
+            if (welcome) After(650, BringUpBoard);
+            else BringUpBoard();
 
-            Core.SyncClock();
-            Core.SyncGreeting();
-
-            // Explorer sometimes finishes building its desktop windows slightly after we
-            // do; a couple of delayed re-attaches makes cold start reliable.
-            Reattach(700);
-            Reattach(2500);
+            // And again on every unlock: the process outlives a lock, so start-up alone
+            // would greet the first sign-in of the day and none of the others.
+            WelcomeWindow.WatchSession();
 
             // Startup churn (JIT, XAML theme dictionaries, the first backdrop render) is
             // the peak; give it back once things settle.
@@ -117,6 +120,26 @@ namespace TodoWall
             });
 
             StartIdleTrim();
+        }
+
+        /// <summary>The board, the notch and the pill, in that order.</summary>
+        void BringUpBoard()
+        {
+            WallWindow wall = new WallWindow();
+            Core.Wall = wall;
+            wall.Show();
+            wall.Attach(true);
+
+            Core.SyncClock();
+            Core.SyncGreeting();
+
+            // Off unless asked for; Sync() is what decides that.
+            WallpaperWatch.Sync();
+
+            // Explorer sometimes finishes building its desktop windows slightly after we
+            // do; a couple of delayed re-attaches makes cold start reliable.
+            Reattach(700);
+            Reattach(2500);
         }
 
         /// <summary>Make WPF's element tree agree with InvariantGlobalization.
@@ -180,6 +203,8 @@ namespace TodoWall
         {
             try
             {
+                WallpaperWatch.Stop();
+                WelcomeWindow.StopWatching();
                 // Saving here would write board.json - and with it the data folder - straight
                 // back out after an uninstall had just deleted them.
                 if (!Uninstaller.Removing) Core.SaveBoardNow();

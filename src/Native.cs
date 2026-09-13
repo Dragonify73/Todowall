@@ -15,6 +15,10 @@ namespace TodoWall
         public const int WS_EX_TOOLWINDOW = 0x00000080;
         public const int WS_EX_APPWINDOW = 0x00040000;
         public const int WS_EX_NOACTIVATE = 0x08000000;
+        public const int WS_EX_LAYERED = 0x00080000;
+        public const int WS_EX_TRANSPARENT = 0x00000020;   // mouse passes straight through
+
+        public const uint LWA_ALPHA = 0x00000002;
 
 
         public const uint SWP_NOSIZE = 0x0001;
@@ -83,6 +87,12 @@ namespace TodoWall
         [DllImport("user32.dll")]
         public static extern bool IsWindow(IntPtr hWnd);
 
+        /// <summary>Whole-window constant alpha, blended by the desktop compositor. Needs
+        /// WS_EX_LAYERED on the window, and unlike per-pixel alpha costs the app nothing
+        /// per frame: the window's own surface is left alone.</summary>
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint colorKey, byte alpha, uint flags);
+
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
@@ -120,6 +130,40 @@ namespace TodoWall
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern bool SystemParametersInfo(int action, int uParam, string vParam, int winIni);
+
+        public const int ENUM_CURRENT_SETTINGS = -1;
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public struct DEVMODE
+        {
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
+            public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;
+            public int dmFields;
+            public int dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;
+            public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
+            public short dmLogPixels;
+            public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency;
+            public int dmICMMethod, dmICMIntent, dmMediaType, dmDitherType;
+            public int dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;
+        }
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
+
+        /// <summary>The refresh rate of a display, in Hz, from its current mode - or 0 when
+        /// the driver does not say (it reports 0 or 1 for "the hardware default").</summary>
+        public static int RefreshRateOf(string deviceName)
+        {
+            try
+            {
+                DEVMODE dm = new DEVMODE();
+                dm.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE));
+                if (!EnumDisplaySettings(deviceName, ENUM_CURRENT_SETTINGS, ref dm)) return 0;
+                return dm.dmDisplayFrequency > 1 ? dm.dmDisplayFrequency : 0;
+            }
+            catch { return 0; }
+        }
 
         [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
         static extern int GetWindowLong32(IntPtr hWnd, int index);

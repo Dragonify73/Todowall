@@ -27,16 +27,16 @@ namespace TodoWall
     /// </summary>
     internal class GreetingWindow : Window
     {
-        /// <summary>The greeting is set in Bodoni Moda italic. Bodoni Moda is a webfont, not
+        /// <summary>The greeting is set in Bodoni Moda. Bodoni Moda is a webfont, not
         /// a Windows one - the fallbacks walk down the Bodonis that do turn up on a typical
         /// machine and end on Times New Roman, so the worst case is still the same serif the
         /// name is in rather than the default sans.</summary>
-        static readonly FontFamily GreetingFace =
+        internal static readonly FontFamily GreetingFace =
             new FontFamily("Bodoni Moda, Bodoni MT, Bodoni 72, Times New Roman");
 
         /// <summary>The name is set in Times New Roman, which ships with Windows - nothing
         /// to fall back to but the generic serif, and it will not come to that.</summary>
-        static readonly FontFamily NameFace =
+        internal static readonly FontFamily NameFace =
             new FontFamily("Times New Roman, Times, serif");
 
         Grid _root;
@@ -178,15 +178,17 @@ namespace TodoWall
 
         // ===================================================================== the words
 
-        /// <summary>Morning until noon, afternoon until five, evening after that - and the
-        /// small hours read as evening rather than as an early morning nobody is having.</summary>
+        /// <summary>Morning until noon, afternoon until five, evening until ten, night after
+        /// that - and the small hours stay night rather than becoming an early morning
+        /// nobody is having.</summary>
         static string Phrase(DateTime now)
         {
             int h = now.Hour;
-            if (h < 5) return "Good evening";
+            if (h < 5) return "Good night";
             if (h < 12) return "Good morning";
             if (h < 17) return "Good afternoon";
-            return "Good evening";
+            if (h < 22) return "Good evening";
+            return "Good night";
         }
 
         static string Who()
@@ -209,20 +211,23 @@ namespace TodoWall
             Palette p = Core.Skin;
             _label.Inlines.Clear();
 
-            Run hello = new Run(phrase);
+            // The comma belongs to the greeting, not to the name: setting it in the name's
+            // bold accent face reads as punctuation someone typed into their own name.
+            Run hello = new Run(name.Length > 0 ? phrase + ", " : phrase);
             hello.FontFamily = GreetingFace;
-            hello.FontStyle = FontStyles.Italic;
+            // Upright and plain: the greeting is the sentence, the name is the emphasis.
+            hello.FontStyle = FontStyles.Normal;
             // Bodoni is a didone: hairline strokes and a modest x-height next to Times at
-            // the same point size, and the italic leans it thinner still. Nudged up until
-            // the two halves read as one line.
+            // the same point size. Nudged up until the two halves read as one line.
             hello.FontSize = TextSize * 1.08;
             hello.FontWeight = FontWeights.Normal;
             _label.Inlines.Add(hello);
 
             if (name.Length > 0)
             {
-                Run who = new Run(", " + name);
+                Run who = new Run(name);
                 who.FontFamily = NameFace;
+                who.FontStyle = FontStyles.Italic;
                 who.FontWeight = FontWeights.Bold;
                 who.Foreground = p.Accent;
                 _label.Inlines.Add(who);
@@ -319,11 +324,19 @@ namespace TodoWall
                 }));
         }
 
+        /// <summary>Drop the cached glass and cut it again from whatever the wallpaper is
+        /// now. Nothing else about the window changes - see <see cref="WallpaperWatch"/>.</summary>
+        public void RefreshBackdrop()
+        {
+            _backdropKey = "";
+            Relayout();
+        }
+
         public void Attach(bool relayout)
         {
             if (_hwnd == IntPtr.Zero) return;
 
-            _mode = DesktopHost.ParseMode(Core.Config.AttachMode);
+            _mode = DesktopHost.Mode;
             _childAttached = false;
             _parent = IntPtr.Zero;
 

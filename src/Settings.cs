@@ -41,11 +41,24 @@ namespace TodoWall
         public bool ShowClock = true;            // the notch on the top edge of the screen
         public bool ShowCalendar = true;         // its pull-down month view
 
+        /// <summary>24-hour by default: it is the format whose width never changes and
+        /// which needs no AM/PM on a face this large.</summary>
+        public bool Clock24Hour = true;
+
         public bool ShowGreeting = true;         // the pill riding the bottom edge of the board
         public string UserName = "";             // said after the greeting, when set
 
+        /// <summary>The full-screen "Welcome back" that opens over everything when TodoWall
+        /// starts - which, with start-with-Windows on, is when you log in. A click takes it
+        /// away. It shares the name above with the pill.</summary>
+        public bool ShowWelcome = true;
+
+        /// <summary>Where the welcome screen is in its list of quotes: it moves one on each
+        /// time, so no two greetings in a row say the same thing. Kept here rather than in
+        /// the program so it survives a restart, which is exactly when it is read.</summary>
+        public int QuoteIndex = 0;
+
         // Behaviour
-        public string AttachMode = "Floating";    // Floating | DesktopChild | BehindIcons
         public string Rollover = "CarryUnfinished"; // CarryUnfinished | ClearAll | KeepAll
         public bool StartWithWindows = false;
 
@@ -54,6 +67,16 @@ namespace TodoWall
         public bool HardwareAcceleration = false;
         public int Monitor = 0;                  // index into Screen.AllScreens
         public bool ShowWeekend = true;
+
+        /// <summary>Poll for a new wallpaper on a timer, and re-cut the frosted glass when
+        /// one turns up. Off by default: Windows announces most wallpaper changes and the
+        /// widgets already listen for that, so the poll is there for the ones it does not -
+        /// slideshows, Spotlight, and anything that swaps the file behind the same path.
+        /// Nobody should pay for it who does not need it.</summary>
+        public bool WatchWallpaper = false;
+
+        /// <summary>How often that poll runs, in minutes. 1, 5 or 10.</summary>
+        public int WatchMinutes = 5;
 
         public static Settings Load()
         {
@@ -79,19 +102,18 @@ namespace TodoWall
                 s.Animations = J.Bool(o, "animations", s.Animations);
                 s.ShowClock = J.Bool(o, "showClock", s.ShowClock);
                 s.ShowCalendar = J.Bool(o, "showCalendar", s.ShowCalendar);
+                s.Clock24Hour = J.Bool(o, "clock24Hour", s.Clock24Hour);
                 s.ShowGreeting = J.Bool(o, "showGreeting", s.ShowGreeting);
                 s.UserName = J.Str(o, "userName", s.UserName);
-                s.AttachMode = J.Str(o, "attachMode", null);
-                if (s.AttachMode == null)
-                {
-                    // Migrate the old boolean.
-                    s.AttachMode = J.Bool(o, "behindIcons", false) ? "BehindIcons" : "Floating";
-                }
+                s.ShowWelcome = J.Bool(o, "showWelcome", s.ShowWelcome);
+                s.QuoteIndex = (int)J.Num(o, "quoteIndex", s.QuoteIndex);
                 s.Rollover = J.Str(o, "rollover", s.Rollover);
                 s.StartWithWindows = J.Bool(o, "startWithWindows", s.StartWithWindows);
                 s.HardwareAcceleration = J.Bool(o, "hardwareAcceleration", s.HardwareAcceleration);
                 s.Monitor = (int)J.Num(o, "monitor", s.Monitor);
                 s.ShowWeekend = J.Bool(o, "showWeekend", s.ShowWeekend);
+                s.WatchWallpaper = J.Bool(o, "watchWallpaper", s.WatchWallpaper);
+                s.WatchMinutes = (int)J.Num(o, "watchMinutes", s.WatchMinutes);
             }
             catch { }
             s.Clamp();
@@ -115,8 +137,10 @@ namespace TodoWall
             if (CornerRadius < 0) CornerRadius = 0;
             if (CornerRadius > 40) CornerRadius = 40;
             if (Monitor < 0) Monitor = 0;
+            if (QuoteIndex < 0) QuoteIndex = 0;
+            // Only the three offered intervals; anything else is a hand-edited file.
+            if (WatchMinutes != 1 && WatchMinutes != 5 && WatchMinutes != 10) WatchMinutes = 5;
             if (string.IsNullOrEmpty(Accent)) Accent = "#FF9BE36D";
-            if (string.IsNullOrEmpty(AttachMode)) AttachMode = "Floating";
             // The greeting is one line on the desktop, not a text field: a name long enough
             // to stretch the pill across the screen is a mistake, not a preference.
             if (UserName == null) UserName = "";
@@ -145,14 +169,18 @@ namespace TodoWall
                 o["animations"] = J.Of(Animations);
                 o["showClock"] = J.Of(ShowClock);
                 o["showCalendar"] = J.Of(ShowCalendar);
+                o["clock24Hour"] = J.Of(Clock24Hour);
                 o["showGreeting"] = J.Of(ShowGreeting);
                 o["userName"] = J.Of(UserName);
-                o["attachMode"] = J.Of(AttachMode);
+                o["showWelcome"] = J.Of(ShowWelcome);
+                o["quoteIndex"] = J.Of((double)QuoteIndex);
                 o["rollover"] = J.Of(Rollover);
                 o["startWithWindows"] = J.Of(StartWithWindows);
                 o["hardwareAcceleration"] = J.Of(HardwareAcceleration);
                 o["monitor"] = J.Of((double)Monitor);
                 o["showWeekend"] = J.Of(ShowWeekend);
+                o["watchWallpaper"] = J.Of(WatchWallpaper);
+                o["watchMinutes"] = J.Of((double)WatchMinutes);
                 File.WriteAllText(Paths.Config, o.ToString());
             }
             catch { }

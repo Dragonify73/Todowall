@@ -38,6 +38,24 @@ runtime into a single exe that runs on machines without .NET installed.
 
 Everything saves itself; there is no save button.
 
+## Settings
+
+Open with **⚙**. The ones worth knowing about:
+
+- **Start with Windows** — top of the panel.
+- **Welcome screen at sign-in** — *Welcome back, name* and a line for the day,
+  over the whole screen, when TodoWall starts and every time you unlock the PC.
+  Click anywhere to dismiss. **Your name** is shared with the greeting bar under
+  the board.
+- **Clock** — the notch on the top edge and its pull-down calendar; 24-hour or
+  12-hour with AM/PM.
+- **Wallpaper changes** — off by default. Turn it on if your wallpaper is a
+  slideshow or Windows Spotlight, and the frosted glass will re-cut itself every
+  1, 5 or 10 minutes when the picture changes.
+- **Appearance** — theme, accent, tint, text size, week height, position and
+  margins, corner rounding, the frosted glass and its blur, animations, weekend.
+
+
 
 ## Where your data lives
 
