@@ -65,9 +65,12 @@ namespace TodoWall
                 NamedPipeServerStream server = null;
                 try
                 {
+                    // CurrentUserOnly: the pipe's ACL admits only the account that started
+                    // TodoWall, and never a remote machine over SMB. Other local accounts
+                    // can neither read the board nor write to it through here.
                     server = new NamedPipeServerStream(PipeName, PipeDirection.InOut,
                         NamedPipeServerStream.MaxAllowedServerInstances,
-                        PipeTransmissionMode.Byte, PipeOptions.None, MaxRequestBytes, MaxRequestBytes);
+                        PipeTransmissionMode.Byte, PipeOptions.CurrentUserOnly, MaxRequestBytes, MaxRequestBytes);
                     _current = server;
                     server.WaitForConnection();
                     _current = null;
