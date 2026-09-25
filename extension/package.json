@@ -1,0 +1,14 @@
+{
+  "name": "todowall-mcp",
+  "version": "1.0.3",
+  "description": "MCP server that lets Claude Desktop read and edit the TodoWall board on this PC.",
+  "private": true,
+  "type": "module",
+  "main": "server/index.js",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "zod": "^3.25.0"
+  }
+}

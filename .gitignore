@@ -16,3 +16,7 @@ release/
 # Raw capture — too large for git. Compressed copies live in docs/
 export-*.gif
 *.mp4
+
+# Extension dependencies are restored by build.ps1 -Extension
+extension/node_modules/
+*.mcpb

@@ -57,6 +57,43 @@ Open with **⚙**. The ones worth knowing about:
 
 
 
+## Claude Desktop
+
+TodoWall ships as a Claude Desktop extension, so you can tell Claude *"put 'renew
+passport' on Thursday"* or *"what's on my board this week?"* and watch the desktop
+change. Nothing leaves the PC: the extension talks to the running TodoWall over a
+local named pipe.
+
+1. Build it: `.\build.ps1 -Extension` (needs Node 18+; output is `.\dist\todowall.mcpb`).
+2. Double-click `todowall.mcpb`, or in Claude Desktop go to **Settings → Extensions →
+   Advanced settings → Install Extension…** and pick it.
+3. Optional: in the extension's settings, point **TodoWall.exe** at your copy and
+   Claude will start TodoWall when it isn't already running.
+
+Claude gets five tools: `get_board`, `add_tasks`, `complete_task`, `move_task` and
+`remove_task`. Dates can be `2026-09-25`, `today`, `tomorrow`, a weekday name, or
+`next monday`.
+
+### For other programs
+
+Anything else can use the same door. Connect to `\\.\pipe\TodoWall.Bridge`, write
+one JSON line, read one JSON line back:
+
+```json
+{ "op": "add", "items": [ { "date": "2026-09-25", "text": "Buy milk" } ] }
+{ "op": "list", "from": "2026-09-21", "to": "2026-10-04" }
+{ "op": "complete", "date": "2026-09-25", "index": 0, "text": "Buy milk", "done": true }
+{ "op": "move",     "date": "2026-09-25", "index": 0, "text": "Buy milk", "to": "2026-09-26" }
+{ "op": "remove",   "date": "2026-09-25", "index": 0, "text": "Buy milk" }
+{ "op": "ping" }
+```
+
+Every reply carries `"ok": true` or `"ok": false, "error": "…"`. Tasks have no ids:
+address one by its day and index from `list`, and send the text along so a board
+that shifted underneath you is matched by text instead of edited blind. Don't write
+`board.json` while TodoWall is running; the app holds the board in memory and would
+overwrite your change on its next save.
+
 ## Where your data lives
 
 `%APPDATA%\TodoWall\`

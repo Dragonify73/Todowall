@@ -107,6 +107,12 @@ namespace TodoWall
             if (welcome) After(650, BringUpBoard);
             else BringUpBoard();
 
+            // The named pipe other programs (the Claude Desktop extension) add tasks
+            // through. Requests land on the dispatcher, so it is safe to open before
+            // the board window exists - a change that arrives early is simply in the
+            // model when the board first draws.
+            Bridge.Start();
+
             // And again on every unlock: the process outlives a lock, so start-up alone
             // would greet the first sign-in of the day and none of the others.
             WelcomeWindow.WatchSession();
@@ -203,6 +209,7 @@ namespace TodoWall
         {
             try
             {
+                Bridge.Stop();
                 WallpaperWatch.Stop();
                 WelcomeWindow.StopWatching();
                 // Saving here would write board.json - and with it the data folder - straight

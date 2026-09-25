@@ -1,0 +1,46 @@
+{
+  "manifest_version": "0.3",
+  "name": "todowall",
+  "display_name": "TodoWall",
+  "version": "1.0.3",
+  "description": "Let Claude add, tick, move and list tasks on the TodoWall board on your desktop.",
+  "long_description": "TodoWall is a two-week to-do board that lives on the Windows desktop. This extension connects Claude to the running TodoWall app on this PC, so you can say \"add 'renew passport' to Thursday\" or \"what's on my board this week?\" and the board changes on the desktop as you watch.\n\nRequires TodoWall 1.0.3 or later running on the same PC. Nothing leaves your machine: the extension talks to TodoWall over a local named pipe.",
+  "author": {
+    "name": "Srijan Kumar",
+    "url": "https://github.com/Dragonify73/Todowall"
+  },
+  "homepage": "https://github.com/Dragonify73/Todowall",
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "TODOWALL_EXE": "${user_config.todowall_exe}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "get_board", "description": "List the tasks on the board, day by day, with indices." },
+    { "name": "add_tasks", "description": "Add one or more tasks under a day." },
+    { "name": "complete_task", "description": "Tick or untick a task." },
+    { "name": "move_task", "description": "Move a task to another day." },
+    { "name": "remove_task", "description": "Delete a task." }
+  ],
+  "keywords": ["todo", "tasks", "desktop", "windows", "planner"],
+  "license": "MIT",
+  "user_config": {
+    "todowall_exe": {
+      "type": "file",
+      "title": "TodoWall.exe (optional)",
+      "description": "Where TodoWall.exe lives. If set, Claude starts TodoWall for you when it is not already running.",
+      "required": false
+    }
+  },
+  "compatibility": {
+    "platforms": ["win32"],
+    "runtimes": { "node": ">=18.0.0" }
+  }
+}

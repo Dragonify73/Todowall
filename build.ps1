@@ -6,12 +6,14 @@
         .\build.ps1 -Run         # build, then start it
         .\build.ps1 -SelfContained   # bundle the .NET runtime (no runtime install needed)
         .\build.ps1 -Package     # self-contained build + read-me, zipped, ready to send
+        .\build.ps1 -Extension   # only the Claude Desktop extension -> .\dist\todowall.mcpb
 #>
 [CmdletBinding()]
 param(
     [switch]$Run,
     [switch]$SelfContained,
-    [switch]$Package
+    [switch]$Package,
+    [switch]$Extension
 )
 
 # Packaging is for handing to someone else, who will not have the .NET runtime.
@@ -20,6 +22,43 @@ if ($Package) { $SelfContained = $true }
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $root
+
+# ---------------------------------------------------------------- Claude Desktop extension
+# The MCP server under .\extension, bundled as one .mcpb that Claude Desktop installs
+# by double-click (Settings -> Extensions). Node is only needed here, to restore the
+# server's dependencies and run the packer; Claude Desktop ships its own runtime.
+function Build-Extension {
+    $node = Get-Command node -ErrorAction SilentlyContinue
+    if (-not $node) { throw 'node was not found on PATH. Install Node.js 18+ to build the extension: https://nodejs.org' }
+
+    $ext = Join-Path $root 'extension'
+    $out = Join-Path $root 'dist'
+    if (-not (Test-Path $out)) { New-Item -ItemType Directory $out | Out-Null }
+    $mcpb = Join-Path $out 'todowall.mcpb'
+    if (Test-Path $mcpb) { Remove-Item $mcpb -Force }
+
+    Write-Host 'Restoring extension dependencies...' -ForegroundColor Cyan
+    Push-Location $ext
+    try {
+        & npm install --omit=dev --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) { throw "npm install failed with exit code $LASTEXITCODE" }
+
+        Write-Host 'Packing todowall.mcpb...' -ForegroundColor Cyan
+        & npx --yes @anthropic-ai/mcpb pack . $mcpb
+        if ($LASTEXITCODE -ne 0) { throw "mcpb pack failed with exit code $LASTEXITCODE" }
+    }
+    finally { Pop-Location }
+
+    if (-not (Test-Path $mcpb)) { throw "Packing reported success but $mcpb is missing." }
+    Write-Host ''
+    Write-Host "Built: $mcpb" -ForegroundColor Green
+    Write-Host 'Install: double-click it, or Claude Desktop -> Settings -> Extensions -> Advanced -> Install Extension.' -ForegroundColor DarkGray
+}
+
+if ($Extension) {
+    Build-Extension
+    return
+}
 
 # ---------------------------------------------------------------- app icon
 function New-AppIcon {
@@ -226,6 +265,13 @@ WHAT IT NEEDS
   own folder below.
 
 
+CLAUDE DESKTOP
+
+  If todowall.mcpb is next to this file, double-click it (or use Claude
+  Desktop -> Settings -> Extensions) and Claude can add tasks to your
+  board for you. TodoWall has to be running; nothing leaves your PC.
+
+
 WHERE YOUR TASKS ARE KEPT
 
   %APPDATA%\TodoWall     (paste that into Explorer's address bar)
@@ -237,6 +283,15 @@ REMOVING IT
   Windows, asks whether to delete your tasks, and then deletes itself.
 "@
     Set-Content -Path (Join-Path $dist 'Read me first.txt') -Value $readme -Encoding utf8
+
+    # The Claude Desktop extension rides along when Node is here to build it.
+    if (Get-Command node -ErrorAction SilentlyContinue) {
+        Build-Extension
+        Copy-Item (Join-Path $root 'dist\todowall.mcpb') (Join-Path $dist 'todowall.mcpb') -Force
+    }
+    else {
+        Write-Host 'node not found - the package will not include the Claude Desktop extension.' -ForegroundColor Yellow
+    }
 
     $zip = Join-Path $root "release\TodoWall-$version-win-x64.zip"
     if (Test-Path $zip) { Remove-Item $zip -Force }

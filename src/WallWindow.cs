@@ -820,6 +820,22 @@ namespace TodoWall
                 RefreshWeek(wk);
         }
 
+        /// <summary>Redraw one day after something other than a click changed it - the
+        /// bridge, on behalf of another program. A day that is off-screen needs nothing:
+        /// the model already has the change, and scrolling to it rebuilds the cells.</summary>
+        public void RefreshDay(DateTime date, bool animateNewRow)
+        {
+            int row = RowOfMonday(Board.MondayOf(date));
+            if (row < 0) return;
+            int day = ((int)date.DayOfWeek + 6) % 7;
+            if (day >= DayCount) return;      // weekend hidden
+            if (_editor != null) return;      // never rebuild under an open editor
+            RefreshCell(row, day);
+            if (animateNewRow)
+                Dispatcher.BeginInvoke(DispatcherPriority.Loaded,
+                    new Action(delegate { PlayLastRowEnter(row, day); }));
+        }
+
         void RefreshWeek(int week)
         {
             for (int d = 0; d < DayCount; d++)
