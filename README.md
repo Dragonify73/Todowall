@@ -1,7 +1,7 @@
 # TodoWall
 
 A two-week to-do board that lives on your desktop — the days of the week across,
-one week per block, editable directly from the desktop.
+one week per block, editable directly from the desktop. Now features Claude Integration.
 ![TodoWall on the desktop](docs/screenshot.png)
 
 ![TodoWall in use](docs/demo.gif)
